@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { Client, GatewayIntentBits } from 'discord.js';
 
@@ -16,6 +17,9 @@ client.on('messageCreate', (message) => {
   message.reply({ files: [GIF] }).catch(console.error);
 });
 
+if (!process.env.DISCORD_TOKEN) {
+  console.error('DISCORD_TOKEN is not set. Copy .env.example to .env and paste your bot token.');
+}
 client.login(process.env.DISCORD_TOKEN).catch(console.error);
 
 const app = express();
