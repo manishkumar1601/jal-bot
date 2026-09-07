@@ -8,6 +8,7 @@
     "start": "node --env-file-if-exists=.env index.js"
   },
   "dependencies": {
-    "discord.js": "^14.16.3"
+    "discord.js": "^14.16.3",
+    "express": "^5.2.1"
   }
 }

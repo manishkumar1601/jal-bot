@@ -1,3 +1,4 @@
+import express from 'express';
 import { Client, GatewayIntentBits } from 'discord.js';
 
 const GIF = 'gif/jal.gif';
@@ -15,4 +16,19 @@ client.on('messageCreate', (message) => {
   message.reply({ files: [GIF] }).catch(console.error);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN).catch(console.error);
+
+const app = express();
+
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'API is working' });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', bot: client.isReady() ? 'online' : 'offline' });
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`API is working on port ${port}`));
+
+export default app;
