@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Client, GatewayIntentBits } from 'discord.js';
 
-const GIF = 'gif/jal.gif';
+const GIF = fileURLToPath(new URL('gif/jal.gif', import.meta.url));
 
 const client = new Client({
   // ponytail: no MessageContent intent - mentions are populated without it
@@ -29,7 +31,14 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', bot: client.isReady() ? 'online' : 'offline' });
+  res.json({
+    status: 'ok',
+    bot: client.isReady() ? 'online' : 'offline',
+    tag: client.user?.tag ?? null,
+    guilds: client.guilds.cache.size,
+    tokenSet: Boolean(process.env.DISCORD_TOKEN),
+    gifFound: existsSync(GIF),
+  });
 });
 
 const port = process.env.PORT || 3000;
