@@ -13,11 +13,34 @@ const client = new Client({
 
 client.once('clientReady', () => console.log(`online as ${client.user.tag}`));
 
+const stats = {
+  messagesSeen: 0,
+  mentionsSeen: 0,
+  repliesSent: 0,
+  lastReplyError: null,
+  gatewayError: null,
+};
+
 client.on('messageCreate', (message) => {
+  stats.messagesSeen++;
   if (message.author.bot) return;
   if (!message.mentions.has(client.user)) return;
-  message.reply({ files: [GIF] }).catch(console.error);
+  stats.mentionsSeen++;
+  message.reply({ files: [GIF] })
+    .then(() => { stats.repliesSent++; })
+    .catch((err) => {
+      stats.lastReplyError = `${err.code ?? err.name}: ${err.message}`;
+      console.error('reply failed:', err);
+    });
 });
+
+// gateway problems after login() resolves are otherwise silent
+const noteGatewayError = (err) => {
+  stats.gatewayError = `${err.code ?? err.name}: ${err.message}`;
+  console.error('gateway:', err);
+};
+client.on('error', noteGatewayError);
+client.on('shardError', noteGatewayError);
 
 // ponytail: strip stray quotes/whitespace - dashboards paste them in silently
 const raw = process.env.DISCORD_TOKEN ?? '';
@@ -55,6 +78,7 @@ app.get('/health', (req, res) => {
     tokenParts: token ? token.split('.').length : 0,
     tokenNeededCleanup: raw !== token,
     uptimeSeconds: Math.round(process.uptime()),
+    ...stats,
   });
 });
 
