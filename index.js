@@ -98,6 +98,13 @@ app.get('/diag', async (req, res) => {
     });
     out.apiStatus = r.status;
     out.gatewayUrl = r.ok ? (await r.json()).url : null;
+    if (!r.ok) {
+      // Cloudflare IP ban vs Discord's own rate limit need different fixes
+      out.retryAfter = r.headers.get('retry-after');
+      out.cfRay = r.headers.get('cf-ray');
+      out.server = r.headers.get('server');
+      out.body = (await r.text()).slice(0, 300);
+    }
   } catch (err) {
     out.apiStatus = `FAILED ${err.name}: ${err.message}`;
   }
