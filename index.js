@@ -54,6 +54,7 @@ app.get('/health', (req, res) => {
     tokenLength: token.length,
     tokenParts: token ? token.split('.').length : 0,
     tokenNeededCleanup: raw !== token,
+    uptimeSeconds: Math.round(process.uptime()),
   });
 });
 
