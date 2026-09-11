@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, version as discordJsVersion } from 'discord.js';
 
 const GIF = fileURLToPath(new URL('gif/jal.gif', import.meta.url));
 
@@ -47,15 +47,20 @@ const raw = process.env.DISCORD_TOKEN ?? '';
 const token = raw.trim().replace(/^["']|["']$/g, '');
 
 let loginError = null;
+let loginState = 'not-started';
 
 if (!token) {
   loginError = 'DISCORD_TOKEN is not set';
   console.error(loginError);
 } else {
-  client.login(token).catch((err) => {
-    loginError = `${err.code ?? err.name}: ${err.message}`;
-    console.error(err);
-  });
+  loginState = 'pending';
+  client.login(token)
+    .then(() => { loginState = 'resolved'; })
+    .catch((err) => {
+      loginState = 'rejected';
+      loginError = `${err.code ?? err.name}: ${err.message}`;
+      console.error(err);
+    });
 }
 
 const app = express();
@@ -79,7 +84,24 @@ app.get('/health', (req, res) => {
     tokenNeededCleanup: raw !== token,
     uptimeSeconds: Math.round(process.uptime()),
     ...stats,
+    loginState,
+    nodeVersion: process.version,
+    discordJsVersion,
   });
+});
+
+app.get('/diag', async (req, res) => {
+  const out = { nodeVersion: process.version, discordJsVersion, loginState };
+  try {
+    const r = await fetch('https://discord.com/api/v10/gateway', {
+      signal: AbortSignal.timeout(8000),
+    });
+    out.apiStatus = r.status;
+    out.gatewayUrl = r.ok ? (await r.json()).url : null;
+  } catch (err) {
+    out.apiStatus = `FAILED ${err.name}: ${err.message}`;
+  }
+  res.json(out);
 });
 
 const port = process.env.PORT || 3000;
