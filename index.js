@@ -19,10 +19,21 @@ client.on('messageCreate', (message) => {
   message.reply({ files: [GIF] }).catch(console.error);
 });
 
-if (!process.env.DISCORD_TOKEN) {
-  console.error('DISCORD_TOKEN is not set. Copy .env.example to .env and paste your bot token.');
+// ponytail: strip stray quotes/whitespace - dashboards paste them in silently
+const raw = process.env.DISCORD_TOKEN ?? '';
+const token = raw.trim().replace(/^["']|["']$/g, '');
+
+let loginError = null;
+
+if (!token) {
+  loginError = 'DISCORD_TOKEN is not set';
+  console.error(loginError);
+} else {
+  client.login(token).catch((err) => {
+    loginError = `${err.code ?? err.name}: ${err.message}`;
+    console.error(err);
+  });
 }
-client.login(process.env.DISCORD_TOKEN).catch(console.error);
 
 const app = express();
 
@@ -38,6 +49,11 @@ app.get('/health', (req, res) => {
     guilds: client.guilds.cache.size,
     tokenSet: Boolean(process.env.DISCORD_TOKEN),
     gifFound: existsSync(GIF),
+    loginError,
+    // token shape only - never the value
+    tokenLength: token.length,
+    tokenParts: token ? token.split('.').length : 0,
+    tokenNeededCleanup: raw !== token,
   });
 });
 
